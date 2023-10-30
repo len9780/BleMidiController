@@ -652,6 +652,7 @@ void app_main(void) {
   dat[0] = 0x90;
   dat[1] = 0x48;
   dat[2] = 0x40;
+  uint8_t a = 0xff;
   for (int i = 0;; i++) {
     dat[2]++;
     ESP_LOGI(GATTS_TABLE_TAG, "%d,%d,%d", dat[0], dat[1], dat[2]);
@@ -660,16 +661,18 @@ void app_main(void) {
     esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id,
                                 heart_rate_handle_table[IDX_CHAR_VAL_A], 3,
                                 (uint8_t*)dat, true);
-    if (i % 2) {
-      HC595_SCK_Low();
-      HC595_RCK_Low();
-      HC595_DATA_Low();
-    } else {
-      HC595_SCK_High();
-      HC595_RCK_High();
-      HC595_DATA_High();
-    }
-
+    //    if (i % 2) {
+    //      HC595_SCK_Low();
+    //      HC595_RCK_Low();
+    //      HC595_DATA_Low();
+    //    } else {
+    //      HC595_SCK_High();
+    //      HC595_RCK_High();
+    //      HC595_DATA_High();
+    //    }
+    HC595_Send_Multi_Byte(&a, 1);
+    ESP_LOGI(GATTS_TABLE_TAG, "[value]:%X", a);
+    a ^= 0xff;
     vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }

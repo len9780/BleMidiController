@@ -1,7 +1,11 @@
+// SN74HC595-ESP32 WROOM
+// MR-VCC
+// OE-GND
+
 #include <stdint.h>
 #define SCK_GPIO_PIN 13
-#define RCK_GPIO_PIN 15
-#define SDA_GPIO_PIN 2
+#define RCK_GPIO_PIN 14
+#define SDA_GPIO_PIN 12
 
 void _74hc595_init();
 void HC595_Save();

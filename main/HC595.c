@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include "driver/gpio.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
 #define row1Pin_In 18
@@ -10,7 +11,7 @@
 #define row4Pin_In 21
 #define row5Pin_In 22
 #define row6Pin_In 23
-#define GATTS_TABLE_TAG ""
+#define TAG "BleMidiController"
 #define ESP_INTR_FLAG_DEFAULT 0
 static QueueHandle_t gpio_evt_queue = NULL;
 static void input_sensor_thread(void* arg) {
@@ -52,11 +53,11 @@ void _74hc595_init() {
   gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
   // hook isr handler for specific gpio pin
   gpio_isr_handler_add(row1Pin_In, gpio_isr_handler, (void*)row1Pin_In);
-  gpio_isr_handler_add(row2Pin_In, gpio_isr_handler, (void*)row1Pin_In);
-  gpio_isr_handler_add(row3Pin_In, gpio_isr_handler, (void*)row1Pin_In);
-  gpio_isr_handler_add(row4Pin_In, gpio_isr_handler, (void*)row1Pin_In);
-  gpio_isr_handler_add(row5Pin_In, gpio_isr_handler, (void*)row1Pin_In);
-  gpio_isr_handler_add(row6Pin_In, gpio_isr_handler, (void*)row1Pin_In);
+  gpio_isr_handler_add(row2Pin_In, gpio_isr_handler, (void*)row2Pin_In);
+  gpio_isr_handler_add(row3Pin_In, gpio_isr_handler, (void*)row3Pin_In);
+  gpio_isr_handler_add(row4Pin_In, gpio_isr_handler, (void*)row4Pin_In);
+  gpio_isr_handler_add(row5Pin_In, gpio_isr_handler, (void*)row5Pin_In);
+  gpio_isr_handler_add(row6Pin_In, gpio_isr_handler, (void*)row6Pin_In);
   xTaskCreate(input_sensor_thread, "input_sensor_thread", 2048, NULL, 10, NULL);
 }
 void HC595_Save(void) {
@@ -82,10 +83,15 @@ void HC595_Send_Byte(uint8_t byte) {
 
 void HC595_Send_Multi_Byte(uint8_t* data, uint16_t len) {
   uint8_t i;
+
+  HC595_RCK_Low();
   for (i = 0; i < len; i++) {
+    ESP_LOGI(TAG, "HC595_Send_Multi_Byte:%d", data[i]);
     HC595_Send_Byte(data[i]);
   }
-  HC595_Save();
+
+  HC595_RCK_High();
+  //  HC595_Save();
 }
 void HC595_RCK_Low() {
   gpio_set_level(SCK_GPIO_PIN, 0);
