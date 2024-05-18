@@ -1,2 +1,2 @@
-idf_component_register(SRCS "gatts_table_creat_demo.c" "HC595.c"
+idf_component_register(SRCS "main.c" "HC595.c" "utils.c"
                     INCLUDE_DIRS ".")

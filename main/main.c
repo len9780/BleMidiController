@@ -677,11 +677,14 @@ void app_main(void) {
 
     HC595_Send_Multi_Byte(&out_position, 1);
     ESP_LOGI(GATTS_TABLE_TAG, "[vout_positionlue]:%X", out_position);
-    out_position =
-        (midi_dat == 0)
-            ? ((((out_position << 1) & 0xff) == 0) ? 0x1 : (out_position << 1))
-            : out_position;
+    out_position<<=1;
+    out_position=(out_position==0)?1:out_position;
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    // out_position =
+    //     (midi_dat == 0)
+    //         ? ((((out_position << 1) & 0xff) == 0) ? 0x1 : (out_position << 1))
+    //         : out_position;
+
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }
