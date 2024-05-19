@@ -123,6 +123,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
 void HC595_pin_register(HC595_ctrl_pin_set pin_set,HC595_ctrl_pin_set**record){
   // ESP_LOGI(TAG,"HC595_pin_register first element addr:%p",*record);
   HC595_ctrl_pin_set * show_add_addr;
+  int ic_index = 0;
   // if(*record==NULL){
   //   (*record) = (HC595_ctrl_pin_set*)malloc(sizeof(HC595_ctrl_pin_set));
   //   (*record)->RCK = pin_set.RCK;
@@ -145,10 +146,11 @@ void HC595_pin_register(HC595_ctrl_pin_set pin_set,HC595_ctrl_pin_set**record){
   // }
   while((*record)!=NULL){
     record =  &((*record)->next);
+    ic_index+=1;
   }
 
     (*record) = (HC595_ctrl_pin_set*)malloc(sizeof(HC595_ctrl_pin_set));
-    (*record)->ic_id = pin_set.ic_id;
+    (*record)->ic_id = ic_index;
     (*record)->RCK = pin_set.RCK;
     (*record)->SCK = pin_set.SCK;
     (*record)->SDA= pin_set.SDA;
@@ -165,15 +167,43 @@ void HC595_pin_register(HC595_ctrl_pin_set pin_set,HC595_ctrl_pin_set**record){
   };
     esp_err_t err = gpio_config(&io_conf);
     ESP_LOGI(TAG,"HC595_pin_register,[addr]:%p[data]%d,%d,%d,%s",show_add_addr,pin_set.RCK,pin_set.SCK,pin_set.SDA,esp_err_to_name(err));
+    HC595_SCK_Low((*record));
+    HC595_RCK_Low((*record));
+    HC595_DATA_Low((*record));
   // *record = head_tmp;
 }
-void dump_HC595_pin_list(HC595_ctrl_pin_set ** pin){
-  HC595_ctrl_pin_set *tmp  = *pin;
-  ESP_LOGI(TAG,"dump_HC595_pin_list head %p",*pin);
-  while(tmp!=NULL){
-    ESP_LOGI(TAG,"dump_HC595_pin_list:%p,%d,%d,%d",tmp,tmp->RCK,tmp->SCK,tmp->SDA);
-    tmp = tmp->next;
+void dump_HC595_pin_list(HC595_ctrl_pin_set * pin){
+  ESP_LOGI(TAG,"dump_HC595_pin_list head %p",pin);
+  while(pin!=NULL){
+    ESP_LOGI(TAG,"dump_HC595_pin_list:%p,%d,%d,%d,%d",pin,pin->ic_id,pin->RCK,pin->SCK,pin->SDA);
+    pin = pin->next;
   }
+}
+void gpio_pin_test(HC595_ctrl_pin_set*pin){
+  while(pin!=NULL){
+    ESP_LOGI(TAG,"pin no[SCK,RCK,SDA]:[%d,%d,%d]",pin->SCK,pin->RCK,pin->SDA);
+    gpio_set_level(pin->SCK, 1);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->SCK,1);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    gpio_set_level(pin->RCK, 1);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->RCK,1);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    gpio_set_level(pin->SDA, 1);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->SDA,1);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    gpio_set_level(pin->SCK, 0);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->SCK,0);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    gpio_set_level(pin->RCK, 0);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->RCK,0);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    gpio_set_level(pin->SDA, 0);
+    ESP_LOGI(TAG,"pin no:%d,level:%d",pin->SDA,0);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    pin = pin->next;
+  }
+
 }
 void _74hc595_init() {
   // gpio_config_t io_conf = {
@@ -194,13 +224,7 @@ void _74hc595_init() {
                          (1ULL << row5Pin_In);  // | (1ULL << row6Pin_In);
   io_conf.pull_down_en = 1;
 
-  gpio_config(&io_conf);
-  HC595_pin_register((HC595_ctrl_pin_set){0,13,14,12,NULL},&pin_set_r);
-  HC595_pin_register((HC595_ctrl_pin_set){1,27,25,26,NULL},&pin_set_r);
-  dump_HC595_pin_list(&pin_set_r);
-  HC595_SCK_Low(pin_set_r);
-  HC595_RCK_Low(pin_set_r);
-  HC595_DATA_Low(pin_set_r);
+  ESP_LOGI(TAG,"input io pin init:%s",esp_err_to_name(gpio_config(&io_conf)));
 
   gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
   gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
@@ -212,6 +236,14 @@ void _74hc595_init() {
   gpio_isr_handler_add(row5Pin_In, gpio_isr_handler, (void*)row5Pin_In);
   // gpio_isr_handler_add(row6Pin_In, gpio_isr_handler, (void*)row6Pin_In);
   xTaskCreate(input_sensor_thread, "input_sensor_thread", 2048, NULL, 10, NULL);
+  HC595_pin_register((HC595_ctrl_pin_set){0,13,14,12,NULL},&pin_set_r);
+  HC595_pin_register((HC595_ctrl_pin_set){1,26,27,25,NULL},&pin_set_r);
+  dump_HC595_pin_list(pin_set_r);
+  gpio_pin_test(pin_set_r);
+  // HC595_SCK_Low(pin_set_r);
+  // HC595_RCK_Low(pin_set_r);
+  // HC595_DATA_Low(pin_set_r);
+  ESP_LOGI(TAG,"_74hc595_init done");
 }
 void HC595_Save(void) {
   HC595_RCK_Low(pin_set_r);
@@ -219,22 +251,22 @@ void HC595_Save(void) {
   HC595_RCK_High(pin_set_r);
 }
 
-void HC595_Send_Byte(uint8_t byte, uint8_t dir) {
+void HC595_Send_Byte(HC595_ctrl_pin_set *hc595, uint8_t byte, uint8_t dir) {
   uint8_t i;
   for (i = 0; i < 8; i++) {
-    HC595_SCK_Low(pin_set_r);
+    HC595_SCK_Low(hc595);
     if (dir == 1) {
       if (byte & 0x80) {
-        HC595_DATA_High(pin_set_r);
+        HC595_DATA_High(hc595);
       } else {
-        HC595_DATA_Low(pin_set_r);
+        HC595_DATA_Low(hc595);
       }
       byte = byte << 1;
     } else {
       if (byte & 0x01) {
-        HC595_DATA_High(pin_set_r);
+        HC595_DATA_High(hc595);
       } else {
-        HC595_DATA_Low(pin_set_r);
+        HC595_DATA_Low(hc595);
       }
       byte = byte >> 1;
     }
@@ -244,40 +276,54 @@ void HC595_Send_Byte(uint8_t byte, uint8_t dir) {
 }
 
 void HC595_Send_Multi_Byte(uint8_t* data, uint16_t len) {
-  uint8_t i;
-
-  HC595_RCK_Low(pin_set_r);
-  for (i = 0; i < len; i++) {
-    HC595_Send_Byte(data[i], 1);
+  uint8_t index = 1;
+  HC595_ctrl_pin_set ** pin_set_r_tmp = &pin_set_r;
+  ESP_LOGI(TAG,"HC595_Send_Multi_Byte start");
+while(*pin_set_r_tmp!=NULL){
+  index = 1;
+  while(index!=0){
+  HC595_RCK_Low(*pin_set_r_tmp);
+  HC595_Send_Byte(*pin_set_r_tmp,index, 1);
+  HC595_RCK_High( *pin_set_r_tmp);
+  ESP_LOGI(TAG,"HC595_Send_Multi_Byte:%d,%d,%d,%d,%p,%d",(*pin_set_r_tmp)->ic_id,(*pin_set_r_tmp)->RCK,(*pin_set_r_tmp)->SCK,(*pin_set_r_tmp)->SDA,*pin_set_r_tmp,index);
+  vTaskDelay(pdMS_TO_TICKS(3000));
+  index = index << 1;
   }
-
-  HC595_RCK_High( pin_set_r);
+  pin_set_r_tmp = &((*pin_set_r_tmp)->next);
+  len--;
+}
   //  HC595_Save();
 }
 void HC595_RCK_Low(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(RCK_GPIO_PIN, 0);
+  // ESP_LOGI(TAG,"HC595_RCK_Low");
   gpio_set_level(pin->RCK, 0);
 }
 
 void HC595_SCK_Low(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(SCK_GPIO_PIN, 0);
+  // ESP_LOGI(TAG,"HC595_SCK_Low");
   gpio_set_level(pin->SCK, 0);
 }
 void HC595_DATA_Low(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(SDA_GPIO_PIN, 0);
+  // ESP_LOGI(TAG,"HC595_DATA_Low");
   gpio_set_level(pin->SDA, 0);
 }
 void HC595_RCK_High(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(RCK_GPIO_PIN, 1);
+  // ESP_LOGI(TAG,"HC595_RCK_High");
   gpio_set_level(pin->RCK, 1);
 }
 
 void HC595_SCK_High(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(SCK_GPIO_PIN, 1);
+  // ESP_LOGI(TAG,"HC595_SCK_High");
   gpio_set_level(pin->SCK, 1);
 }
 void HC595_DATA_High(HC595_ctrl_pin_set *pin) {
   // gpio_set_level(SDA_GPIO_PIN, 1);
+  // ESP_LOGI(TAG,"HC595_DATA_High");
   gpio_set_level(pin->SDA, 1);
 }
 void midi_init() {

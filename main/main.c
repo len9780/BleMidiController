@@ -658,7 +658,7 @@ void app_main(void) {
     ESP_LOGE(GATTS_TABLE_TAG, "set local  MTU failed, error code = %x",
              local_mtu_ret);
   }
-  midi_init();
+  // midi_init();
   _74hc595_init();
   //  uint8_t dat[50] = {0};
   //  dat[0] = 0x90;
@@ -666,25 +666,25 @@ void app_main(void) {
   //  dat[2] = 0x40;
   // midi_dat = &midi_note_data[1];
   while (1) {
-    if (midi_dat != 0) {
-      ESP_LOGI(GATTS_TABLE_TAG, "%d,%d,%d", *midi_dat, *(midi_dat + 1),
-               *(midi_dat + 2));
-      esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id,
-                                  heart_rate_handle_table[IDX_CHAR_VAL_A], 3,
-                                  (uint8_t*)midi_dat, true);
-      midi_dat = 0;
-    }
+    // if (midi_dat != 0) {
+    //   ESP_LOGI(GATTS_TABLE_TAG, "%d,%d,%d", *midi_dat, *(midi_dat + 1),
+    //            *(midi_dat + 2));
+    //   esp_ble_gatts_send_indicate(spp_gatts_if, spp_conn_id,
+    //                               heart_rate_handle_table[IDX_CHAR_VAL_A], 3,
+    //                               (uint8_t*)midi_dat, true);
+    //   midi_dat = 0;
+    // }
 
     HC595_Send_Multi_Byte(&out_position, 1);
-    ESP_LOGI(GATTS_TABLE_TAG, "[vout_positionlue]:%X", out_position);
-    out_position<<=1;
-    out_position=(out_position==0)?1:out_position;
+    // ESP_LOGI(GATTS_TABLE_TAG, "[vout_positionlue]:%X", out_position);
+    // out_position<<=1;
+    // out_position=(out_position==0)?1:out_position;
 
     // out_position =
     //     (midi_dat == 0)
     //         ? ((((out_position << 1) & 0xff) == 0) ? 0x1 : (out_position << 1))
     //         : out_position;
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    // vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }

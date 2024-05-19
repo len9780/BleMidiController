@@ -28,7 +28,7 @@ typedef struct HC595_ctrl_pin_set {
 void _74hc595_init();
 void HC595_Save();
 
-void HC595_Send_Byte(uint8_t byte, uint8_t dir);
+void HC595_Send_Byte(HC595_ctrl_pin_set *hc595, uint8_t byte, uint8_t dir);
 
 void HC595_Send_Multi_Byte(uint8_t* byte, uint16_t len);
 void HC595_SCK_Low(HC595_ctrl_pin_set *pin);
@@ -39,4 +39,5 @@ void HC595_DATA_Low(HC595_ctrl_pin_set *pin);
 void HC595_DATA_High(HC595_ctrl_pin_set *pin);
 void midi_init();
 void HC595_pin_register(HC595_ctrl_pin_set pin_set,HC595_ctrl_pin_set**record);
-void dump_HC595_pin_list(HC595_ctrl_pin_set ** pin);
+void dump_HC595_pin_list(HC595_ctrl_pin_set * pin);
+void gpio_pin_test(HC595_ctrl_pin_set*pin);
