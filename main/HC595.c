@@ -237,12 +237,10 @@ void _74hc595_init() {
   // gpio_isr_handler_add(row6Pin_In, gpio_isr_handler, (void*)row6Pin_In);
   xTaskCreate(input_sensor_thread, "input_sensor_thread", 2048, NULL, 10, NULL);
   HC595_pin_register((HC595_ctrl_pin_set){0,13,14,12,NULL},&pin_set_r);
-  HC595_pin_register((HC595_ctrl_pin_set){1,26,27,25,NULL},&pin_set_r);
+  HC595_pin_register((HC595_ctrl_pin_set){1,27,25,26,NULL},&pin_set_r);
   dump_HC595_pin_list(pin_set_r);
-  gpio_pin_test(pin_set_r);
-  // HC595_SCK_Low(pin_set_r);
-  // HC595_RCK_Low(pin_set_r);
-  // HC595_DATA_Low(pin_set_r);
+  // gpio_pin_test(pin_set_r);
+  clear_hc595(pin_set_r,0);
   ESP_LOGI(TAG,"_74hc595_init done");
 }
 void HC595_Save(void) {
@@ -250,7 +248,17 @@ void HC595_Save(void) {
   vTaskDelay(pdMS_TO_TICKS(10));
   HC595_RCK_High(pin_set_r);
 }
-
+void clear_hc595(HC595_ctrl_pin_set *pin_set,uint8_t val){
+  ESP_LOGI(TAG,"clear_hc595 start:%d",val);
+while(pin_set!=NULL){
+  HC595_RCK_Low(pin_set);
+  HC595_Send_Byte(pin_set,val, 1);
+  HC595_RCK_High(pin_set);
+  ESP_LOGI(TAG,"HC595_Send_Multi_Byte:%d,%d,%d,%d,%p,%d",pin_set->ic_id,pin_set->RCK,pin_set->SCK,pin_set->SDA,pin_set,val);
+  vTaskDelay(pdMS_TO_TICKS(5000));
+  pin_set=pin_set->next;
+}
+}
 void HC595_Send_Byte(HC595_ctrl_pin_set *hc595, uint8_t byte, uint8_t dir) {
   uint8_t i;
   for (i = 0; i < 8; i++) {
@@ -271,7 +279,7 @@ void HC595_Send_Byte(HC595_ctrl_pin_set *hc595, uint8_t byte, uint8_t dir) {
       byte = byte >> 1;
     }
 
-    HC595_SCK_High(pin_set_r);
+    HC595_SCK_High(hc595);
   }
 }
 

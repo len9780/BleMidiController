@@ -15,7 +15,7 @@
 #define row3Pin_In 15
 #define row4Pin_In 23
 #define row5Pin_In 22
-#define row6Pin_In 33
+// #define row6Pin_In 33
 
 typedef struct HC595_ctrl_pin_set {
   int ic_id;
@@ -41,3 +41,4 @@ void midi_init();
 void HC595_pin_register(HC595_ctrl_pin_set pin_set,HC595_ctrl_pin_set**record);
 void dump_HC595_pin_list(HC595_ctrl_pin_set * pin);
 void gpio_pin_test(HC595_ctrl_pin_set*pin);
+void clear_hc595(HC595_ctrl_pin_set *pin_set,uint8_t val);
